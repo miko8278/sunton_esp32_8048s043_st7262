@@ -1,0 +1,27 @@
+Command: ninja all
+[1/9] Performing build step for 'bootloader'
+[1/1] cd /home/alle/CYD/esp32_8048s043/build/bootloader && /home/alle/.espressif/python_env/idf6.2_py3.13_env/bin/python /home/alle/CYD/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/alle/CYD/esp32_8048s043/build/bootloader/bootloader.bin
+Bootloader binary size 0x5290 bytes. 0x2d70 bytes (35%) free.
+[2/9] No install step for 'bootloader'
+[3/9] Completed 'bootloader'
+[4/9] Building CXX object esp-idf/main/CMakeFiles/__idf_main.dir/main.cpp.obj
+FAILED: esp-idf/main/CMakeFiles/__idf_main.dir/main.cpp.obj 
+esp-idf-configdep /home/alle/.espressif/tools/xtensa-esp-elf/esp-15.2.0_20251204/xtensa-esp-elf/bin/xtensa-esp32s3-elf-g++ @esp-idf/main/CMakeFiles/__idf_main.dir/main.cpp.obj.rsp -MD -MT esp-idf/main/CMakeFiles/__idf_main.dir/main.cpp.obj -MF esp-idf/main/CMakeFiles/__idf_main.dir/main.cpp.obj.d -o esp-idf/main/CMakeFiles/__idf_main.dir/main.cpp.obj -c /home/alle/CYD/esp32_8048s043/main/main.cpp
+/home/alle/CYD/esp32_8048s043/main/main.cpp: In function 'void app_main()':
+/home/alle/CYD/esp32_8048s043/main/main.cpp:166:5: error: 'esp_lcd_rgb_panel_config_t' has no non-static data member named 'pclk_active_neg'
+  166 |     };
+      |     ^
+/home/alle/CYD/esp32_8048s043/main/main.cpp:184:44: error: cannot convert 'lv_color_t*' to 'lv_draw_buf_t*' {aka '_lv_draw_buf_t*'}
+  184 |     lv_display_set_draw_buffers(lvgl_disp, framebuffer, nullptr,
+      |                                            ^~~~~~~~~~~
+      |                                            |
+      |                                            lv_color_t*
+In file included from /home/alle/CYD/esp32_8048s043/managed_components/lvgl__lvgl/src/core/lv_obj_tree.h:18,
+                 from /home/alle/CYD/esp32_8048s043/managed_components/lvgl__lvgl/src/core/lv_obj.h:24,
+                 from /home/alle/CYD/esp32_8048s043/managed_components/lvgl__lvgl/lvgl.h:44,
+                 from /home/alle/CYD/esp32_8048s043/main/main.cpp:10:
+/home/alle/CYD/esp32_8048s043/managed_components/lvgl__lvgl/src/core/../display/lv_display.h:293:71: note: initializing argument 2 of 'void lv_display_set_draw_buffers(lv_display_t*, lv_draw_buf_t*, lv_draw_buf_t*)'
+  293 | void lv_display_set_draw_buffers(lv_display_t * disp, lv_draw_buf_t * buf1, lv_draw_buf_t * buf2);
+      |                                                       ~~~~~~~~~~~~~~~~^~~~
+configdep.c:648: in main: exec_process exited with error code: 1
+ninja: build stopped: subcommand failed.

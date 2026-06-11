@@ -1,0 +1,237 @@
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include "driver/i2c_master.h"
+#include "esp_lcd_panel_rgb.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "lvgl.h"
+
+static const char *TAG = "main";
+
+#define LCD_BLINK_GPIO  ((gpio_num_t)2)
+#define TOUCH_I2C_SDA   ((gpio_num_t)19)
+#define TOUCH_I2C_SCL   ((gpio_num_t)20)
+#define TOUCH_GT911_RST ((gpio_num_t)38)
+#define TOUCH_GT911_INT ((gpio_num_t)18)
+
+i2c_master_dev_handle_t touch_dev_handle = NULL;
+
+// -------------------- LVGL Flush (Double‑Buffer) --------------------
+static void lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
+{
+    esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
+    // Der Treiber erkennt den neuen Puffer und tauscht ihn VSYNC‑synchron aus.
+    esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1, area->x2, area->y2, px_map);
+    lv_display_flush_ready(disp);
+}
+
+// -------------------- LVGL Tick --------------------
+static void lvgl_tick_cb(void *arg)
+{
+    lv_tick_inc(2);
+}
+
+// -------------------- GT911 I²C --------------------
+static bool gt911_read_reg(uint16_t reg, uint8_t *data, size_t len)
+{
+    uint8_t reg_buf[2] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF) };
+    return i2c_master_transmit_receive(touch_dev_handle, reg_buf, 2, data, len, 100) == ESP_OK;
+}
+
+static void gt911_write_reg(uint16_t reg, uint8_t val)
+{
+    uint8_t buf[3] = { (uint8_t)(reg >> 8), (uint8_t)(reg & 0xFF), val };
+    i2c_master_transmit(touch_dev_handle, buf, 3, 100);
+}
+
+// -------------------- Touch Callback --------------------
+static void lvgl_touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
+{
+    uint8_t status;
+    if (!gt911_read_reg(0x814E, &status, 1)) {
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
+    }
+    if (status & 0x80) {
+        uint8_t points = status & 0x0F;
+        if (points > 0) {
+            uint8_t buf[4];
+            if (gt911_read_reg(0x8150, buf, 4)) {
+                data->point.x = buf[0] | (buf[1] << 8);
+                data->point.y = buf[2] | (buf[3] << 8);
+                data->state = LV_INDEV_STATE_PRESSED;
+            }
+        } else {
+            data->state = LV_INDEV_STATE_RELEASED;
+        }
+        gt911_write_reg(0x814E, 0);
+    } else {
+        data->state = LV_INDEV_STATE_RELEASED;
+    }
+}
+
+// -------------------- Button Event --------------------
+static void button_event_handler(lv_event_t *e)
+{
+    lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+    lv_obj_t *label = lv_obj_get_child(btn, 0);
+    static bool clicked = false;
+    lv_label_set_text(label, clicked ? "Klick mich!" : "Es klappt! :)");
+    clicked = !clicked;
+}
+
+// ==================== main ====================
+extern "C" void app_main(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(500));
+    ESP_LOGI(TAG, "Starte Hardware-Init...");
+
+    // --- Backlight (aus) ---
+    gpio_config_t bk_conf = {};
+    bk_conf.pin_bit_mask = 1ULL << LCD_BLINK_GPIO;
+    bk_conf.mode = GPIO_MODE_OUTPUT;
+    bk_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    bk_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    bk_conf.intr_type = GPIO_INTR_DISABLE;
+    gpio_config(&bk_conf);
+    gpio_set_level(LCD_BLINK_GPIO, 0);
+
+    // ==================== GT911 Reset & I²C ====================
+    gpio_set_direction(TOUCH_GT911_RST, GPIO_MODE_OUTPUT);
+    gpio_set_direction(TOUCH_GT911_INT, GPIO_MODE_OUTPUT);
+
+    gpio_set_level(TOUCH_GT911_RST, 0);
+    gpio_set_level(TOUCH_GT911_INT, 0);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    gpio_set_level(TOUCH_GT911_RST, 1);
+    vTaskDelay(pdMS_TO_TICKS(20));
+    gpio_set_direction(TOUCH_GT911_INT, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(TOUCH_GT911_INT, GPIO_PULLUP_ONLY);
+    vTaskDelay(pdMS_TO_TICKS(60));
+
+    i2c_master_bus_config_t i2c_conf = {};
+    i2c_conf.clk_source = I2C_CLK_SRC_DEFAULT;
+    i2c_conf.i2c_port = I2C_NUM_0;
+    i2c_conf.sda_io_num = TOUCH_I2C_SDA;
+    i2c_conf.scl_io_num = TOUCH_I2C_SCL;
+    i2c_conf.glitch_ignore_cnt = 7;
+    i2c_master_bus_handle_t bus_handle;
+    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_conf, &bus_handle));
+
+    i2c_device_config_t dev_cfg = {};
+    dev_cfg.dev_addr_length = I2C_ADDR_BIT_LEN_7;
+    dev_cfg.device_address = 0x5D;
+    dev_cfg.scl_speed_hz = 400000;
+    dev_cfg.scl_wait_us = 0;
+    dev_cfg.flags = {};
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &touch_dev_handle));
+
+    if (i2c_master_probe(bus_handle, 0x5D, 100) == ESP_OK) {
+        ESP_LOGI(TAG, "GT911 erkannt.");
+    } else {
+        ESP_LOGE(TAG, "GT911 nicht gefunden!");
+    }
+
+    // ==================== Display (Originale Timings + Double‑Buffer) ====================
+    esp_lcd_rgb_panel_config_t panel_conf = {};
+    //panel_conf.clk_src = LCD_CLK_SRC_DEFAULT;
+    panel_conf.clk_src = LCD_CLK_SRC_PLL160M;
+    panel_conf.timings.pclk_hz = 12500000;               // Original 12,5 MHz
+    panel_conf.timings.h_res = 800;
+    panel_conf.timings.v_res = 480;
+    panel_conf.timings.hsync_pulse_width = 4;
+    panel_conf.timings.hsync_back_porch = 8;             // Original Werte
+    panel_conf.timings.hsync_front_porch = 8;
+    panel_conf.timings.vsync_pulse_width = 4;
+    panel_conf.timings.vsync_back_porch = 8;
+    panel_conf.timings.vsync_front_porch = 8;
+    panel_conf.timings.flags.hsync_idle_low = 0;
+    panel_conf.timings.flags.vsync_idle_low = 0;
+    panel_conf.timings.flags.de_idle_high = 0;
+    panel_conf.timings.flags.pclk_idle_high = 0;
+    panel_conf.timings.flags.pclk_active_neg = 1;        // Original: negative Flanke
+    panel_conf.data_width = 16;
+    panel_conf.in_color_format = LCD_COLOR_FMT_RGB565;
+    panel_conf.out_color_format = LCD_COLOR_FMT_RGB565;
+    panel_conf.num_fbs = 2;                              // Double‑Buffer
+    panel_conf.bounce_buffer_size_px = 0;
+    panel_conf.dma_burst_size = 64;
+    panel_conf.pclk_gpio_num = (gpio_num_t)42;
+    panel_conf.hsync_gpio_num = (gpio_num_t)39;
+    panel_conf.vsync_gpio_num = (gpio_num_t)41;
+    panel_conf.de_gpio_num = (gpio_num_t)40;
+    panel_conf.disp_gpio_num = GPIO_NUM_NC;
+
+    int data_pins[] = {8, 3, 46, 9, 1, 5, 6, 7, 15, 16, 4, 45, 48, 47, 21, 14};
+    for (int i = 0; i < 16; i++) {
+        panel_conf.data_gpio_nums[i] = (gpio_num_t)data_pins[i];
+    }
+    panel_conf.flags.fb_in_psram = 1;
+
+    esp_lcd_panel_handle_t panel_handle = NULL;
+    ESP_ERROR_CHECK(esp_lcd_new_rgb_panel(&panel_conf, &panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+
+    uint16_t *fb0 = NULL, *fb1 = NULL;
+    ESP_ERROR_CHECK(esp_lcd_rgb_panel_get_frame_buffer(panel_handle, 1, (void**)&fb0));
+    ESP_ERROR_CHECK(esp_lcd_rgb_panel_get_frame_buffer(panel_handle, 2, (void**)&fb1));
+
+    // ==================== LVGL ====================
+    lv_init();
+
+    esp_timer_create_args_t tick_args = {};
+    tick_args.callback = &lvgl_tick_cb;
+    tick_args.name = "lvgl_tick";
+    tick_args.arg = NULL;
+    tick_args.dispatch_method = ESP_TIMER_TASK;
+    tick_args.skip_unhandled_events = false;
+    esp_timer_handle_t tick_timer = NULL;
+    ESP_ERROR_CHECK(esp_timer_create(&tick_args, &tick_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(tick_timer, 2000));
+
+    lv_display_t *display = lv_display_create(800, 480);
+    // FULL‑Modus → LVGL zeichnet erst den ganzen Frame, dann wird getauscht
+    lv_display_set_buffers(display, fb0, fb1, 800 * 480 * sizeof(uint16_t), LV_DISPLAY_RENDER_MODE_FULL);
+    lv_display_set_flush_cb(display, lvgl_flush_cb);
+    lv_display_set_user_data(display, panel_handle);
+
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, lvgl_touch_read_cb);
+
+    // ==================== UI ====================
+    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x1A1D20), LV_PART_MAIN);
+
+    lv_obj_t *btn = lv_button_create(lv_screen_active());
+    lv_obj_set_size(btn, 180, 50);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, -40);
+    lv_obj_add_event_cb(btn, button_event_handler, LV_EVENT_CLICKED, NULL);
+
+    lv_obj_t *label = lv_label_create(btn);
+    lv_label_set_text(label, "Klick mich!");
+    lv_obj_center(label);
+
+    lv_obj_t *slider = lv_slider_create(lv_screen_active());
+    lv_obj_set_size(slider, 300, 15);
+    lv_obj_align(slider, LV_ALIGN_CENTER, 0, 40);
+    lv_slider_set_value(slider, 70, LV_ANIM_OFF);
+
+    lv_obj_t *title = lv_label_create(lv_screen_active());
+    lv_label_set_text(title, "Interaktives C++ CMake UI");
+    lv_obj_set_style_text_color(title, lv_color_hex(0x00FFB0), LV_PART_MAIN);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 30);
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpio_set_level(LCD_BLINK_GPIO, 1);
+    ESP_LOGI(TAG, "System bereit");
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(5));
+        lv_timer_handler();
+    }
+}

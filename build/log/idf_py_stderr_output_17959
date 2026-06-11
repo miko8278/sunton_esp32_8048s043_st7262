@@ -1,0 +1,42 @@
+Command: /home/alle/.espressif/python_env/idf6.2_py3.13_env/bin/python /home/alle/CYD/esp-idf/tools/idf_monitor.py -p /dev/ttyUSB0 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/alle/CYD/esp32_8048s043/build/esp32_8048s043.elf /home/alle/CYD/esp32_8048s043/build/bootloader/bootloader.elf -m '/home/alle/.espressif/python_env/idf6.2_py3.13_env/bin/python' '/home/alle/CYD/esp-idf/tools/idf.py'
+[0;33m--- esp-idf-monitor 1.9.0 on /dev/ttyUSB0 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x403c8904: [0;33mcall_start_cpu0[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m27[0m
+[0m--- 0x4200a057: [0;33mapp_main[0m[0m at [0;32m/home/alle/CYD/esp32_8048s043/main/main.cpp[0m[0m:[1;31m137[0m
+[0m--- 0x4037c5e7: [0;33m_esp_error_check_failed[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/esp_err.c[0m[0m:[1;31m38[0m
+[0m--- 0x4037c629: [0;33mpanic_abort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/panic.c[0m[0m:[1;31m500[0m
+[0m--- 0x4037c5f1: [0;33mesp_system_abort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/port/esp_system_chip.c[0m[0m:[1;31m87[0m
+[0m--- 0x4037b3d9: [0;33mabort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_libc/src/abort.c[0m[0m:[1;31m38[0m
+[0m--- 0x4037c5e7: [0;33m_esp_error_check_failed[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/esp_err.c[0m[0m:[1;31m38[0m
+[0m--- 0x4200a057: [0;33mapp_main[0m[0m at [0;32m/home/alle/CYD/esp32_8048s043/main/main.cpp[0m[0m:[1;31m137[0m
+[0m--- 0x42006f27: [0;33mmain_task[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/freertos/app_startup.c[0m[0m:[1;31m206[0m
+[0m--- 0x42055896: [0;33mvPortTaskWrapper[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m147[0m
+[0m--- 0x4037c7f9: [0;33mesp_restart_noos[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/port/soc/esp32s3/system_internal.c[0m[0m:[1;31m171[0m
+[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x403c8904: [0;33mcall_start_cpu0[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m27[0m
+[0m--- 0x4200a057: [0;33mapp_main[0m[0m at [0;32m/home/alle/CYD/esp32_8048s043/main/main.cpp[0m[0m:[1;31m137[0m
+[0m--- 0x4037c5e7: [0;33m_esp_error_check_failed[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/esp_err.c[0m[0m:[1;31m38[0m
+[0m--- 0x4037c629: [0;33mpanic_abort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/panic.c[0m[0m:[1;31m500[0m
+[0m--- 0x4037c5f1: [0;33mesp_system_abort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/port/esp_system_chip.c[0m[0m:[1;31m87[0m
+[0m--- 0x4037b3d9: [0;33mabort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_libc/src/abort.c[0m[0m:[1;31m38[0m
+[0m--- 0x4037c5e7: [0;33m_esp_error_check_failed[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/esp_err.c[0m[0m:[1;31m38[0m
+[0m--- 0x4200a057: [0;33mapp_main[0m[0m at [0;32m/home/alle/CYD/esp32_8048s043/main/main.cpp[0m[0m:[1;31m137[0m
+[0m--- 0x42006f27: [0;33mmain_task[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/freertos/app_startup.c[0m[0m:[1;31m206[0m
+[0m--- 0x42055896: [0;33mvPortTaskWrapper[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m147[0m
+[0m--- 0x4037c7f9: [0;33mesp_restart_noos[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/port/soc/esp32s3/system_internal.c[0m[0m:[1;31m171[0m
+[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x403c8904: [0;33mcall_start_cpu0[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m27[0m
+[0m--- 0x4200a057: [0;33mapp_main[0m[0m at [0;32m/home/alle/CYD/esp32_8048s043/main/main.cpp[0m[0m:[1;31m137[0m
+[0m--- 0x4037c5e7: [0;33m_esp_error_check_failed[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/esp_err.c[0m[0m:[1;31m38[0m
+[0m--- 0x4037c629: [0;33mpanic_abort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/panic.c[0m[0m:[1;31m500[0m
+[0m--- 0x4037c5f1: [0;33mesp_system_abort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/port/esp_system_chip.c[0m[0m:[1;31m87[0m
+[0m--- 0x4037b3d9: [0;33mabort[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_libc/src/abort.c[0m[0m:[1;31m38[0m
+[0m--- 0x4037c5e7: [0;33m_esp_error_check_failed[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/esp_err.c[0m[0m:[1;31m38[0m
+[0m--- 0x4200a057: [0;33mapp_main[0m[0m at [0;32m/home/alle/CYD/esp32_8048s043/main/main.cpp[0m[0m:[1;31m137[0m
+[0m--- 0x42006f27: [0;33mmain_task[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/freertos/app_startup.c[0m[0m:[1;31m206[0m
+[0m--- 0x42055896: [0;33mvPortTaskWrapper[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/freertos/FreeRTOS-Kernel/portable/xtensa/port.c[0m[0m:[1;31m147[0m
+[0m--- 0x4037c7f9: [0;33mesp_restart_noos[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/esp_system/port/soc/esp32s3/system_internal.c[0m[0m:[1;31m171[0m
+[0m--- 0x403c8700: [0;33m_stext[0m[0m at [0;32m??[0m[0m:[1;31m?[0m
+[0m--- 0x403c8904: [0;33mcall_start_cpu0[0m[0m at [0;32m/home/alle/CYD/esp-idf/components/bootloader/subproject/main/bootloader_start.c[0m[0m:[1;31m27[0m
+[0m

@@ -1,0 +1,121 @@
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
+#include "esp_lcd_panel_rgb.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_log.h"
+
+static const char *TAG = "main";
+
+#define LCD_BLINK_GPIO ((gpio_num_t)2) 
+
+extern "C" void app_main(void)
+{
+    vTaskDelay(pdMS_TO_TICKS(500)); 
+    ESP_LOGI(TAG, "Starte Sunton 8048S043 mit exakter Synchronisation...");
+
+    // Hintergrundbeleuchtung initialisieren
+    gpio_config_t bk_gpio_config = {
+        .pin_bit_mask = (1ULL << LCD_BLINK_GPIO),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&bk_gpio_config);
+    gpio_set_level(LCD_BLINK_GPIO, 0); 
+
+    // RGB-Panel Konfiguration
+    esp_lcd_rgb_panel_config_t panel_config = {};
+    
+    panel_config.clk_src = LCD_CLK_SRC_DEFAULT;
+    //panel_config.timings.pclk_hz = 14000000; 
+    //panel_config.timings.pclk_hz = 25000000;
+    panel_config.timings.pclk_hz = 14000000; 
+    panel_config.timings.h_res = 800;
+    panel_config.timings.v_res = 480;
+    
+   //
+    panel_config.timings.hsync_pulse_width = 4;
+    panel_config.timings.hsync_back_porch = 8;  
+    panel_config.timings.hsync_front_porch = 8; 
+    panel_config.timings.vsync_pulse_width = 4;
+    panel_config.timings.vsync_back_porch = 8;  
+    panel_config.timings.vsync_front_porch = 8; 
+    
+    panel_config.timings.flags.hsync_idle_low = 0;
+    panel_config.timings.flags.vsync_idle_low = 0;
+    panel_config.timings.flags.de_idle_high = 0;
+    panel_config.timings.flags.pclk_idle_high = 0;
+    panel_config.timings.flags.pclk_active_neg = 1; // Fallende Flanke beibehalten
+
+    panel_config.data_width = 16;
+    panel_config.in_color_format = LCD_COLOR_FMT_RGB565;
+    panel_config.out_color_format = LCD_COLOR_FMT_RGB565;
+
+    panel_config.num_fbs = 1;
+    panel_config.bounce_buffer_size_px = 0;
+    panel_config.dma_burst_size = 64;
+
+    // Kontroll-Pins 
+    panel_config.pclk_gpio_num = (gpio_num_t)42;
+    panel_config.hsync_gpio_num = (gpio_num_t)39;
+    panel_config.vsync_gpio_num = (gpio_num_t)41;
+    panel_config.de_gpio_num = (gpio_num_t)40;
+    panel_config.disp_gpio_num = GPIO_NUM_NC; 
+
+    
+    int data_pins[] = {
+        8,  3,  46, 9,  1,  // B0, B1, B2, B3, B4  (Blau  - Bit 0 bis 4)
+        5,  6,  7,  15, 16, 4,  // G0, G1, G2, G3, G4, G5 (Grün  - Bit 5 bis 10)
+        45, 48, 47, 21, 14  // R0, R1, R2, R3, R4  (Rot   - Bit 11 bis 15)
+    };
+
+    for (int i = 0; i < 16; i++) {
+        panel_config.data_gpio_nums[i] = (gpio_num_t)data_pins[i];
+    }
+
+    panel_config.flags.fb_in_psram = 1; 
+
+    // Panel starten
+    esp_lcd_panel_handle_t panel_handle = NULL;
+    ESP_ERROR_CHECK(esp_lcd_new_rgb_panel(&panel_config, &panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+
+    // Framebuffer holen
+    uint16_t *fb = NULL;
+    ESP_ERROR_CHECK(esp_lcd_rgb_panel_get_frame_buffer(panel_handle, 1, (void**)&fb));
+
+    // Wir zeichnen das Testbild neu 
+    for (int y = 0; y < 480; y++) {
+        for (int x = 0; x < 800; x++) {
+            int pixel_index = y * 800 + x;
+            
+            // Bestimmt, in welchem der 8 Balken (0 bis 7) wir uns befinden
+            int balken = x / 100; 
+
+            switch (balken) {
+                case 0: fb[pixel_index] = 0xFFFF; break; // 100% Weiss
+                case 1: fb[pixel_index] = 0xC600; break; // 75% Gelb
+                case 2: fb[pixel_index] = 0x0638; break; // 75% Cyan
+                case 3: fb[pixel_index] = 0x0600; break; // 75% Gruen
+                case 4: fb[pixel_index] = 0xC018; break; // 75% Magenta
+                case 5: fb[pixel_index] = 0xC000; break; // 75% Rot
+                case 6: fb[pixel_index] = 0x0018; break; // 75% Blau
+                case 7: default: 
+                        fb[pixel_index] = 0x0000; break; // Schwarz
+            }
+        }
+    }
+
+    // Licht an!
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpio_set_level(LCD_BLINK_GPIO, 1);
+    ESP_LOGI(TAG, "Setup komplett.");
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
