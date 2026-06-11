@@ -139,7 +139,7 @@ extern "C" void app_main(void)
     esp_lcd_rgb_panel_config_t panel_conf = {};
     //panel_conf.clk_src = LCD_CLK_SRC_DEFAULT;
     panel_conf.clk_src = LCD_CLK_SRC_PLL160M;
-    panel_conf.timings.pclk_hz = 12500000;               // Original 12,5 MHz
+    panel_conf.timings.pclk_hz = 14000000;               // Original was 12,5 MHz
     panel_conf.timings.h_res = 800;
     panel_conf.timings.v_res = 480;
     panel_conf.timings.hsync_pulse_width = 4;
