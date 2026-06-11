@@ -7,11 +7,13 @@ If you want a fully working setup, check out
 
 # Setup
 This setup uses esp-idf and LVGL.
--[esp-isf] https://github.com/espressif/esp-idf
+
+- [esp-isf] https://github.com/espressif/esp-idf
 Install it and don't forget using . ./export.sh
 
 Afterwards go into this repo and do
 `idf.py build flash monitor`
+
 If something doesn't build try
 `idf.py fullclean`
 
